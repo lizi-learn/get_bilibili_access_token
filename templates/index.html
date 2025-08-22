@@ -1,0 +1,384 @@
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Bilibili 登录</title>
+        <style>
+            body {
+                font-family: 'Microsoft YaHei', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 20px;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .container {
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 500px;
+                width: 100%;
+            }
+            
+            h1 {
+                color: #00a1d6;
+                margin-bottom: 30px;
+                font-size: 2.5em;
+            }
+            
+            .qr-container {
+                margin: 30px 0;
+                padding: 20px;
+                border: 2px dashed #e0e0e0;
+                border-radius: 15px;
+                background: #fafafa;
+            }
+            
+            .qr-code {
+                max-width: 300px;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            
+            .status {
+                margin: 20px 0;
+                padding: 15px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+            
+            .status.success {
+                background: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status.error {
+                background: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            
+            .status.info {
+                background: #d1ecf1;
+                color: #0c5460;
+                border: 1px solid #bee5eb;
+            }
+            
+            .btn {
+                background: #00a1d6;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                margin: 10px;
+            }
+            
+            .btn:hover {
+                background: #0091c2;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+            }
+            
+            .btn:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+            
+            .loading {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #00a1d6;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-right: 10px;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .hidden {
+                display: none;
+            }
+            
+            .token-info {
+                margin: 30px 0;
+                padding: 25px;
+                background: #f8f9fa;
+                border-radius: 15px;
+                border: 1px solid #e9ecef;
+            }
+            
+            .token-info h3 {
+                color: #495057;
+                margin-bottom: 20px;
+                font-size: 1.3em;
+            }
+            
+            .info-grid {
+                display: grid;
+                gap: 15px;
+                text-align: left;
+            }
+            
+            .info-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px;
+                background: white;
+                border-radius: 8px;
+                border: 1px solid #dee2e6;
+            }
+            
+            .info-item label {
+                font-weight: bold;
+                color: #495057;
+                min-width: 120px;
+            }
+            
+            .token-value {
+                font-family: 'Courier New', monospace;
+                background: #e9ecef;
+                padding: 8px 12px;
+                border-radius: 6px;
+                color: #495057;
+                font-size: 14px;
+                word-break: break-all;
+                flex: 1;
+            }
+            
+            .copy-btn {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                white-space: nowrap;
+            }
+            
+            .copy-btn:hover {
+                background: #218838;
+                transform: translateY(-1px);
+            }
+            
+            .note {
+                color: #6c757d;
+                font-style: italic;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎯 Bilibili 登录</h1>
+            
+            <div id="qrSection">
+                <div class="qr-container">
+                    <h3>请使用哔哩哔哩APP扫描二维码</h3>
+                    <div id="qrCodeContainer">
+                        <img id="qrCode" class="qr-code hidden" alt="登录二维码">
+                        <div id="qrLoading" class="loading"></div>
+                        <p>正在生成二维码...</p>
+                    </div>
+                </div>
+                
+                <button id="refreshBtn" class="btn" onclick="refreshQRCode()">
+                    🔄 刷新二维码
+                </button>
+            </div>
+            
+            <div id="statusContainer" class="status hidden"></div>
+            
+            <div id="successSection" class="hidden">
+                <h2>🎉 登录成功！</h2>
+                <p id="successMessage"></p>
+                
+                <div class="token-info">
+                    <h3>🔑 登录凭证信息</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>用户ID (MID):</label>
+                            <span id="userMid" class="token-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Access Token:</label>
+                            <span id="accessToken" class="token-value"></span>
+                            <button class="copy-btn" onclick="copyToClipboard('accessToken')">📋 复制</button>
+                        </div>
+                        <div class="info-item">
+                            <label>有效期至:</label>
+                            <span id="expiresTime" class="token-value"></span>
+                        </div>
+                    </div>
+                </div>
+                
+
+            </div>
+        </div>
+
+        <script>
+            let authCode = null;
+            let checkInterval = null;
+            
+            // 页面加载时自动获取二维码
+            window.onload = function() {
+                getQRCode();
+            };
+            
+            // 获取二维码
+            async function getQRCode() {
+                try {
+                    document.getElementById('qrLoading').classList.remove('hidden');
+                    document.getElementById('qrCode').classList.add('hidden');
+                    document.getElementById('qrCodeContainer').querySelector('p').textContent = '正在生成二维码...';
+                    
+                    const response = await fetch('/get_qr_code');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        document.getElementById('qrCode').src = data.qr_code;
+                        document.getElementById('qrCode').classList.remove('hidden');
+                        document.getElementById('qrLoading').classList.add('hidden');
+                        document.getElementById('qrCodeContainer').querySelector('p').textContent = '请使用哔哩哔哩APP扫描二维码';
+                        
+                        authCode = data.auth_code;
+                        startLoginCheck();
+                    } else {
+                        showStatus(data.error, 'error');
+                        document.getElementById('qrLoading').classList.add('hidden');
+                        document.getElementById('qrCodeContainer').querySelector('p').textContent = '二维码生成失败';
+                    }
+                } catch (error) {
+                    showStatus('获取二维码时出错: ' + error.message, 'error');
+                    document.getElementById('qrLoading').classList.add('hidden');
+                    document.getElementById('qrCodeContainer').querySelector('p').textContent = '二维码生成失败';
+                }
+            }
+            
+            // 刷新二维码
+            function refreshQRCode() {
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                    checkInterval = null;
+                }
+                getQRCode();
+            }
+            
+            // 开始检查登录状态
+            function startLoginCheck() {
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+                
+                checkInterval = setInterval(async () => {
+                    if (!authCode) return;
+                    
+                    try {
+                        const response = await fetch(`/check_login?auth_code=${authCode}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // 登录成功
+                            clearInterval(checkInterval);
+                            checkInterval = null;
+                            
+                            document.getElementById('qrSection').classList.add('hidden');
+                            document.getElementById('successSection').classList.remove('hidden');
+                            document.getElementById('successMessage').textContent = data.message;
+                            
+                            // 显示登录凭证信息
+                            document.getElementById('userMid').textContent = data.mid || 'N/A';
+                            document.getElementById('accessToken').textContent = data.access_token || 'N/A';
+                            document.getElementById('expiresTime').textContent = data.message.split('有效期至')[1] || 'N/A';
+                            
+                            showStatus(data.message, 'success');
+                        } else if (data.error === '等待扫码中...') {
+                            // 继续等待
+                            showStatus('等待扫码中...', 'info');
+                        } else if (data.error === '二维码已失效') {
+                            // 二维码失效，停止检查
+                            clearInterval(checkInterval);
+                            checkInterval = null;
+                            showStatus('二维码已失效，请刷新', 'error');
+                        } else {
+                            // 其他错误
+                            showStatus(data.error, 'error');
+                        }
+                    } catch (error) {
+                        showStatus('检查登录状态时出错: ' + error.message, 'error');
+                    }
+                }, 3000); // 每3秒检查一次
+            }
+            
+            // 显示状态信息
+            function showStatus(message, type) {
+                const statusContainer = document.getElementById('statusContainer');
+                statusContainer.textContent = message;
+                statusContainer.className = `status ${type}`;
+                statusContainer.classList.remove('hidden');
+                
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    statusContainer.classList.add('hidden');
+                }, 3000);
+            }
+            
+            // 复制到剪贴板
+            function copyToClipboard(elementId) {
+                const element = document.getElementById(elementId);
+                const text = element.textContent;
+                
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showStatus('已复制到剪贴板！', 'success');
+                    }).catch(() => {
+                        fallbackCopyTextToClipboard(text);
+                    });
+                } else {
+                    fallbackCopyTextToClipboard(text);
+                }
+            }
+            
+            // 备用复制方法
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showStatus('已复制到剪贴板！', 'success');
+                } catch (err) {
+                    showStatus('复制失败，请手动复制', 'error');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        </script>
+    </body>
+    </html>
